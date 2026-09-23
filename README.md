@@ -6,7 +6,7 @@
 
 ## 下载
 
-[下载知乎简洁版 v1.12 APK](https://github.com/mms-0405/zhihu-lite/releases/download/v1.12/知乎简洁版-v1.12.apk)
+[下载知乎简洁版 v1.12 APK](https://github.com/mms-0405/zhihu-lite/releases/download/v1.12/zhihu-lite-v1.12.apk)
 
 ![应用图标](apk图标.jpg)
 
