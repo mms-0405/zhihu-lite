@@ -1,0 +1,23 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.zhihushell'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.example.zhihushell'
+        minSdk 23
+        targetSdk 35
+        versionCode 12
+        versionName '1.12'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+}
