@@ -6,13 +6,17 @@
     style.id = styleId;
     (document.head || document.documentElement).appendChild(style);
   }
-  let viewport = document.querySelector('meta[name="viewport"]');
-  if (!viewport) {
-    viewport = document.createElement('meta');
-    viewport.name = 'viewport';
-    (document.head || document.documentElement).appendChild(viewport);
-  }
-  viewport.content = 'width=device-width, initial-scale=1, minimum-scale=0.5, maximum-scale=4, user-scalable=yes';
+  const viewportContent = 'width=device-width, initial-scale=1, minimum-scale=0.5, maximum-scale=4, user-scalable=yes';
+  const ensureViewport = () => {
+    let viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) {
+      viewport = document.createElement('meta');
+      viewport.name = 'viewport';
+      (document.head || document.documentElement).appendChild(viewport);
+    }
+    if (viewport.content !== viewportContent) viewport.content = viewportContent;
+  };
+  ensureViewport();
   style.textContent = `
     html, body, #root, .App, .App-main {
       box-sizing: border-box !important;
@@ -45,15 +49,231 @@
       padding-right: 8px !important;
     }
     .Question-main, .Question-mainColumn, .QuestionHeader-main,
+    .QuestionAnswers-answers, .QuestionAnswer-content,
+    .AnswerItem, .AnswerItem-content,
     .Topstory-mainColumn, .SearchMain, .Profile-mainColumn,
     .Profile-sideColumn,
-    .ContentItem, .RichContent, .RichText, .List, .List-item,
+    .ContentItem, .ContentItem-main, .ContentItem-meta,
+    .RichContent, .RichContent-inner, .RichText, .List, .List-item,
     .Card, .Comments-container, .Comments, .CommentListV2,
     [class*="CommentList"], [class*="Comments-container"] {
       box-sizing: border-box !important;
       width: 100% !important;
       min-width: 0 !important;
       max-width: 100% !important;
+    }
+    .Question-main, .QuestionAnswers-answers, [class*="QuestionAnswers"] {
+      overflow-x: hidden !important;
+    }
+    .QuestionHeader-title, .QuestionHeader-detail,
+    .QuestionHeader-footer, .QuestionHeader-footer-inner,
+    .QuestionHeader-main, .QuestionHeader-content {
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+    .QuestionHeader-title, .QuestionHeader-detail {
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+    .QuestionHeader-detail > div, .QuestionHeader-detail > p,
+    .QuestionHeader-detail .RichText, .QuestionHeader-detail .RichContent,
+    .QuestionHeader-detail .RichContent-inner, .QuestionHeader-detail .ztext {
+      box-sizing: border-box !important;
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+    .QuestionHeader-footer-inner {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      gap: 8px !important;
+      min-height: 0 !important;
+      overflow-x: hidden !important;
+    }
+    .QuestionHeader-footer,
+    .QuestionHeader-footer-main,
+    .QuestionHeader-footer-inner,
+    .QuestionHeader-footer button,
+    .QuestionHeader-footer a,
+    .QuestionHeader-footer [role="button"] {
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+    }
+    .QuestionHeader-footer button,
+    .QuestionHeader-footer a,
+    .QuestionHeader-footer [role="button"] {
+      display: inline-flex !important;
+      align-items: center !important;
+      flex: 0 0 auto !important;
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
+    .QuestionHeader-topics {
+      max-width: 100% !important;
+      overflow-x: auto !important;
+    }
+    .zhihu-shell-question-page {
+      overflow-x: hidden !important;
+    }
+    .zhihu-shell-question-page .Question-main,
+    .zhihu-shell-question-page .Question-mainColumn,
+    .zhihu-shell-question-page .QuestionAnswers-answers,
+    .zhihu-shell-question-page .QuestionAnswer-content,
+    .zhihu-shell-question-page [class*="QuestionAnswers"],
+    .zhihu-shell-question-page [class*="AnswerItem"] {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      overflow-x: hidden !important;
+    }
+    .zhihu-shell-question-page .QuestionHeader,
+    .zhihu-shell-question-page .QuestionHeader-main,
+    .zhihu-shell-question-page .QuestionHeader-content,
+    .zhihu-shell-question-page .QuestionHeader-detail {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow-x: hidden !important;
+    }
+    .zhihu-shell-question-page .QuestionHeader-content,
+    .zhihu-shell-question-page .QuestionHeader-main {
+      display: block !important;
+    }
+    .zhihu-shell-question-page .QuestionHeader-title *,
+    .zhihu-shell-question-page .QuestionHeader-detail * {
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+    .zhihu-shell-question-page .QuestionHeader-detail pre,
+    .zhihu-shell-question-page .QuestionHeader-detail pre * {
+      white-space: pre !important;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+      overflow-x: auto !important;
+    }
+    .zhihu-shell-question-page .QuestionHeader-footer {
+      position: static !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin-top: 12px !important;
+    }
+    .zhihu-shell-question-page .AppHeader,
+    .zhihu-shell-question-page .AppHeader-inner {
+      height: auto !important;
+      min-height: 0 !important;
+    }
+    .zhihu-shell-question-page .AppHeader-inner {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 8px !important;
+      overflow: hidden !important;
+    }
+    .zhihu-shell-question-page .AppHeader-inner > * {
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+    .zhihu-shell-question-page .AppHeader-inner > .SearchBar,
+    .zhihu-shell-question-page .AppHeader-inner > [class*="SearchBar"] {
+      flex: 1 1 0 !important;
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+    }
+    .zhihu-shell-question-page .AppHeader-inner input {
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+    .zhihu-shell-answer-card,
+    .zhihu-shell-answer-card .ContentItem,
+    .zhihu-shell-answer-card .ContentItem-main,
+    .zhihu-shell-answer-card .RichContent,
+    .zhihu-shell-answer-card .RichContent-inner,
+    .zhihu-shell-answer-card .RichText,
+    .zhihu-shell-answer-card .ztext {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+    .zhihu-shell-answer-card {
+      overflow-x: hidden !important;
+    }
+    .zhihu-shell-answer-card .RichText p,
+    .zhihu-shell-answer-card .RichText li,
+    .zhihu-shell-answer-card .RichText blockquote,
+    .zhihu-shell-answer-card .ztext p,
+    .zhihu-shell-answer-card .ztext li,
+    .zhihu-shell-answer-card .ztext blockquote {
+      width: auto !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+    .zhihu-shell-answer-card .RichText,
+    .zhihu-shell-answer-card .RichContent,
+    .zhihu-shell-answer-card .RichContent-inner,
+    .zhihu-shell-answer-card .ztext {
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+      overflow-x: hidden !important;
+    }
+    .zhihu-shell-answer-card * {
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere !important;
+      word-break: break-word !important;
+    }
+    .zhihu-shell-answer-card pre,
+    .zhihu-shell-answer-card pre * {
+      white-space: pre !important;
+      overflow-wrap: normal !important;
+      word-break: normal !important;
+      overflow-x: auto !important;
+    }
+    .zhihu-shell-answer-card table {
+      display: block !important;
+      width: max-content !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
     }
     .Profile-sideColumn {
       overflow: visible !important;
@@ -74,6 +294,8 @@
       align-items: center !important;
       gap: 6px !important;
       width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
       overflow: visible !important;
     }
     .ContentItem-actions > * { flex: 0 0 auto !important; margin: 0 !important; }
@@ -108,6 +330,47 @@
       opacity: 1 !important;
       visibility: visible !important;
       pointer-events: auto !important;
+    }
+    .zhihu-shell-answer-toggle-row {
+      box-sizing: border-box !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      min-height: 38px !important;
+      padding: 6px 0 8px !important;
+      overflow: visible !important;
+    }
+    .zhihu-shell-answer-text.zhihu-shell-answer-collapsed {
+      display: block !important;
+      max-height: 8.75em !important;
+      overflow: hidden !important;
+    }
+    .zhihu-shell-answer-toggle {
+      box-sizing: border-box !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 32px !important;
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      padding: 4px 12px !important;
+      border: 1px solid #1772f6 !important;
+      border-radius: 6px !important;
+      background: #fff !important;
+      color: #1772f6 !important;
+      font: inherit !important;
+      font-size: 15px !important;
+      line-height: 22px !important;
+      white-space: nowrap !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      cursor: pointer !important;
     }
     .zhihu-shell-profile-links {
       box-sizing: border-box !important;
@@ -185,15 +448,387 @@
       href.includes('oia.zhihu.com') || href.includes('/download-app') ||
       (text.length <= 40 && appButton.test(text));
   };
+  const controlText = element => (element && (element.textContent || '')).replace(/\s+/g, ' ').trim();
+  const sponsoredLabel = /^.{1,30}\s*的\s*广告$/;
+  const sponsoredCardSelector =
+    '[data-za-detail-view-name*="广告"], [data-za-module-info*="advert"], ' +
+    '[data-za-module-info*="commercial"], [class*="Advert"], [class*="advert"], ' +
+    '.TopstoryItem--advertCard, .Pc-card, .List-item, .Card, .ContentItem';
+  const sponsoredCardBoundary =
+    'html,body,main,[role="main"],[role="feed"],.Question-main,.Question-mainColumn,' +
+    '.QuestionAnswers-answers,[class*="QuestionAnswers"],.List';
+  const findSponsoredCard = element => {
+    const knownCard = element.closest(sponsoredCardSelector);
+    if (knownCard) return knownCard;
+    const labelText = controlText(element);
+    let node = element;
+    let candidate = null;
+    for (let depth = 0; node && depth < 8; depth++) {
+      const parent = node.parentElement;
+      if (!parent || parent.matches(sponsoredCardBoundary)) break;
+      const text = controlText(parent);
+      if (text.length > labelText.length && text.length <= 800) candidate = parent;
+      if (text.length > 800) break;
+      node = parent;
+    }
+    return candidate;
+  };
+  const removeSponsoredCards = () => {
+    document.querySelectorAll('span,div,a,p,small').forEach(element => {
+      const text = controlText(element);
+      if (!text || text.length > 40 || !sponsoredLabel.test(text)) return;
+      if (element.closest('.RichText,.ztext,.CommentContent,[class*="CommentItem"],.AuthorInfo')) return;
+      if (Array.from(element.children).some(child => controlText(child) === text)) return;
+      const card = findSponsoredCard(element);
+      if (card) card.remove();
+    });
+  };
+  const setQuestionPageScope = () => {
+    if (!document.body) return;
+    document.body.classList.toggle('zhihu-shell-question-page', /^\/question\//.test(location.pathname));
+  };
+  const forceQuestionFlowWidth = () => {
+    if (!/^\/question\//.test(location.pathname)) return;
+    const width = Math.max(1, document.documentElement.clientWidth || window.innerWidth || 1);
+    const selectors = [
+      '.Question-main', '.Question-mainColumn', '.QuestionAnswers-answers',
+      '.QuestionAnswer-content', '[class*="QuestionAnswers"]'
+    ];
+    document.querySelectorAll(selectors.join(',')).forEach(element => {
+      element.style.setProperty('box-sizing', 'border-box', 'important');
+      element.style.setProperty('width', width + 'px', 'important');
+      element.style.setProperty('min-width', '0', 'important');
+      element.style.setProperty('max-width', width + 'px', 'important');
+      element.style.setProperty('margin-left', '0', 'important');
+      element.style.setProperty('margin-right', '0', 'important');
+      element.style.setProperty('overflow-x', 'hidden', 'important');
+    });
+  };
+  const forceQuestionHeaderLayout = () => {
+    if (!/^\/question\//.test(location.pathname)) return;
+    const width = Math.max(1, document.documentElement.clientWidth || window.innerWidth || 1);
+    const set = (element, property, value) => element.style.setProperty(property, value, 'important');
+    const roots = document.querySelectorAll(
+      '.QuestionHeader,.QuestionHeader-main,.QuestionHeader-content,.QuestionHeader-detail'
+    );
+    roots.forEach(root => {
+      root.style.setProperty('box-sizing', 'border-box', 'important');
+      root.style.setProperty('width', root.matches('.QuestionHeader') ? width + 'px' : '100%', 'important');
+      root.style.setProperty('min-width', '0', 'important');
+      root.style.setProperty('max-width', '100%', 'important');
+      root.style.setProperty('height', 'auto', 'important');
+      root.style.setProperty('min-height', '0', 'important');
+      root.style.setProperty('max-height', 'none', 'important');
+      root.style.setProperty('overflow-x', root.matches('.QuestionHeader-detail') ? 'visible' : 'hidden', 'important');
+      if (root.matches('.QuestionHeader-content,.QuestionHeader-main')) {
+        set(root, 'display', 'block');
+      }
+    });
+    document.querySelectorAll(
+      '.QuestionHeader-title,.QuestionHeader-detail,.QuestionHeader-detail > div,' +
+      '.QuestionHeader-detail > p,.QuestionHeader-detail .RichText,' +
+      '.QuestionHeader-detail .RichContent,.QuestionHeader-detail .RichContent-inner,' +
+      '.QuestionHeader-detail .ztext'
+    ).forEach(element => {
+      set(element, 'box-sizing', 'border-box');
+      set(element, 'display', 'block');
+      set(element, 'width', '100%');
+      set(element, 'min-width', '0');
+      set(element, 'max-width', '100%');
+      set(element, 'height', 'auto');
+      set(element, 'min-height', '0');
+      set(element, 'max-height', 'none');
+      set(element, 'white-space', 'normal');
+      set(element, 'overflow-wrap', 'anywhere');
+      set(element, 'word-break', 'break-word');
+      set(element, 'overflow-x', 'visible');
+    });
+    document.querySelectorAll('.QuestionHeader-detail pre,.QuestionHeader-detail pre *').forEach(element => {
+      set(element, 'white-space', 'pre');
+      set(element, 'overflow-wrap', 'normal');
+      set(element, 'word-break', 'normal');
+      set(element, 'overflow-x', 'auto');
+    });
+    document.querySelectorAll(
+      '.QuestionHeader-footer,.QuestionHeader-footer-main,.QuestionHeader-footer-inner'
+    ).forEach(element => {
+      set(element, 'box-sizing', 'border-box');
+      set(element, 'width', '100%');
+      set(element, 'min-width', '0');
+      set(element, 'max-width', '100%');
+      set(element, 'height', 'auto');
+      set(element, 'min-height', '0');
+      set(element, 'max-height', 'none');
+      set(element, 'display', 'flex');
+      set(element, 'flex-wrap', 'wrap');
+      set(element, 'align-items', 'center');
+      set(element, 'gap', '8px');
+      set(element, 'overflow-x', 'hidden');
+      if (element.matches('.QuestionHeader-footer')) {
+        set(element, 'position', 'static');
+        set(element, 'margin-top', '12px');
+      }
+    });
+    document.querySelectorAll(
+      '.QuestionHeader-footer button,.QuestionHeader-footer a,' +
+      '.QuestionHeader-footer [role="button"]'
+    ).forEach(element => {
+      set(element, 'display', 'inline-flex');
+      set(element, 'align-items', 'center');
+      set(element, 'flex', '0 0 auto');
+      set(element, 'width', 'auto');
+      set(element, 'min-width', '0');
+      set(element, 'max-width', 'none');
+      set(element, 'white-space', 'nowrap');
+      set(element, 'word-break', 'keep-all');
+      set(element, 'overflow-wrap', 'normal');
+    });
+    const header = document.querySelector('.AppHeader-inner');
+    if (header) {
+      set(header, 'box-sizing', 'border-box');
+      set(header, 'display', 'flex');
+      set(header, 'align-items', 'center');
+      set(header, 'flex-wrap', 'nowrap');
+      set(header, 'width', width + 'px');
+      set(header, 'min-width', '0');
+      set(header, 'max-width', width + 'px');
+      set(header, 'overflow', 'hidden');
+      Array.from(header.children).forEach(element => {
+        set(element, 'min-width', '0');
+        set(element, 'max-width', '100%');
+        set(element, 'white-space', 'nowrap');
+        set(element, 'flex', '0 1 auto');
+      });
+      const search = header.querySelector(
+        '.SearchBar,[class*="SearchBar"],input[type="search"],input[placeholder*="搜索"]'
+      );
+      if (search) {
+        const searchBox = search.closest('.SearchBar,[class*="SearchBar"],.Search-container') || search;
+        set(searchBox, 'box-sizing', 'border-box');
+        set(searchBox, 'flex', '1 1 0');
+        set(searchBox, 'width', 'auto');
+        set(searchBox, 'min-width', '0');
+        set(searchBox, 'max-width', '100%');
+        set(searchBox, 'overflow', 'hidden');
+        set(search, 'width', '100%');
+        set(search, 'min-width', '0');
+        set(search, 'max-width', '100%');
+      }
+    }
+  };
   const persistentState = window.__zhihuShellPersistentState || {
     reading: null,
     comments: null
   };
   window.__zhihuShellPersistentState = persistentState;
-  const controlText = element => (element && (element.textContent || '')).replace(/\s+/g, ' ').trim();
   const findCard = element => element && element.closest(
     '.ContentItem,.List-item,.AnswerItem,[class*="CommentItem"],.Card'
   );
+  const ANSWER_CARD_SELECTOR =
+    '.Question-main .AnswerItem, .Question-main [class*="AnswerItem"], ' +
+    '.Question-main [data-za-detail-view-element_name="Answer"], ' +
+    '.zhihu-shell-question-page .AnswerItem, .zhihu-shell-question-page [class*="AnswerItem"], ' +
+    '.zhihu-shell-question-page [data-za-detail-view-element_name="Answer"]';
+  const ANSWER_TEXT_SELECTORS = [
+    '.RichContent',
+    '.RichContent-inner',
+    '.RichText',
+    '.ztext',
+    '[itemprop="text"]'
+  ];
+  const findAnswerText = card => {
+    for (const selector of ANSWER_TEXT_SELECTORS) {
+      for (const candidate of card.querySelectorAll(selector)) {
+        if (candidate.closest(
+          '.AuthorInfo,.ContentItem-meta,.ContentItem-actions,' +
+          '.zhihu-shell-answer-toggle-row,.Comments-container,.Comments'
+        )) continue;
+        return candidate;
+      }
+    }
+    return null;
+  };
+  const answerCards = () => {
+    const specific = Array.from(document.querySelectorAll(ANSWER_CARD_SELECTOR))
+      .filter(card => !card.closest('.Comments-container,.Comments,.CommentList,.CommentListV2'));
+    const generic = Array.from(document.querySelectorAll(
+      '.Question-main .ContentItem, .zhihu-shell-question-page .ContentItem'
+    )).filter(card =>
+      findAnswerText(card) &&
+      !card.closest('.Comments-container,.Comments,.CommentList,.CommentListV2,.QuestionHeader') &&
+      !specific.some(specificCard => specificCard !== card && specificCard.contains(card))
+    );
+    return Array.from(new Set([...specific, ...generic]));
+  };
+  const nativeAnswerControls = card => Array.from(
+    card.querySelectorAll('button,[role="button"],a')
+  ).filter(element => {
+    if (element.closest('.zhihu-shell-answer-toggle-row,.zhihu-shell-expand-row')) return false;
+    const text = controlText(element);
+    return text.length <= 12 && /^(阅读全文|展开全文|展开更多|收起全文|收起回答|收起)$/.test(text);
+  });
+  const removeAnswerExpandProxies = card => {
+    card.querySelectorAll('.zhihu-shell-expand-row').forEach(row => {
+      const proxy = row.querySelector('.zhihu-shell-expand-button');
+      if (proxy && /^(阅读全文|展开全文|展开更多|收起全文|收起回答|收起)$/.test(controlText(proxy))) {
+        row.remove();
+      }
+    });
+  };
+  const hideNativeAnswerControls = card => {
+    nativeAnswerControls(card).forEach(element => {
+      element.dataset.zhihuShellManagedAnswer = 'true';
+      element.style.setProperty('display', 'none', 'important');
+    });
+  };
+  const forceAnswerLayout = card => {
+    const set = (element, property, value) => element.style.setProperty(property, value, 'important');
+    let ancestor = card;
+    for (let depth = 0; ancestor && ancestor !== document.body && depth < 8; depth++, ancestor = ancestor.parentElement) {
+      set(ancestor, 'box-sizing', 'border-box');
+      set(ancestor, 'min-width', '0');
+      set(ancestor, 'max-width', '100%');
+      set(ancestor, 'overflow-x', 'hidden');
+    }
+    set(card, 'width', '100%');
+    set(card, 'overflow-x', 'hidden');
+    const body = findAnswerText(card);
+    const nodes = [card, ...card.querySelectorAll('*')];
+    nodes.forEach(element => {
+      set(element, 'box-sizing', 'border-box');
+      set(element, 'min-width', '0');
+      set(element, 'max-width', '100%');
+      if (body && (element === body || body.contains(element))) {
+        const isPreformatted = element.matches('pre,pre *');
+        if (isPreformatted) {
+          set(element, 'white-space', 'pre');
+          set(element, 'overflow-wrap', 'normal');
+          set(element, 'word-break', 'normal');
+          set(element, 'overflow-x', 'auto');
+        } else {
+          set(element, 'white-space', 'normal');
+          set(element, 'overflow-wrap', 'anywhere');
+          set(element, 'word-break', 'break-word');
+          if (window.getComputedStyle(element).display === 'inline-block') {
+            set(element, 'display', 'inline');
+          }
+        }
+      }
+    });
+  };
+  /* 问题页的知乎把「X 人赞同了该回答」、正文、原生「阅读全文」和操作栏（赞同/评论/
+     收藏/喜欢/分享）放在同一层容器里，推荐页的那条操作栏则在容器之外——所以推荐页
+     一直有按钮，问题页一折叠就没了：max-height + overflow:hidden 把整层连操作栏一起
+     裁掉了（截图里裁切线正好落在正文中间，后面的阅读全文和操作栏都跟着消失）。
+     折叠前先往下钻一层：取「装着正文、自己不含操作栏」的最大子节点来裁。
+     操作栏本来就在容器外时（推荐页结构）这个函数原样返回，不做任何改动。 */
+  const answerActions = card => card.querySelector('.ContentItem-actions');
+  /* 正文容器的已知类名优先，「X 人赞同了该回答」这种状态行也是文字，
+     只按字数挑的话短回答会被挑中，所以先认类名、再看字数 */
+  const ANSWER_BODY = '.RichContent-inner,.RichText,.ztext,[itemprop="text"]';
+  const clipTarget = (element, actions) => {
+    let node = element;
+    for (let depth = 0; actions && node.contains(actions) && depth < 8; depth++) {
+      let body = null;
+      let holder = null;
+      for (const child of Array.from(node.children)) {
+        const length = controlText(child).length;
+        if (!length) continue;
+        if (child.contains(actions)) {
+          if (!holder || length > holder.length) holder = { node: child, length };
+          continue;
+        }
+        const preferred = child.matches(ANSWER_BODY) ? 1 : 0;
+        if (!body || preferred > body.preferred ||
+            (preferred === body.preferred && length > body.length)) {
+          body = { node: child, length, preferred };
+        }
+      }
+      if (body) { node = body.node; continue; }
+      if (!holder) break;   /* 子节点里既没有正文也没有操作栏，维持原样 */
+      node = holder.node;   /* 每个子节点都包着操作栏时先往下走一层再找 */
+    }
+    return node;
+  };
+  const setAnswerFolded = (card, text, button, folded) => {
+    card.dataset.zhihuShellAnswerState = folded ? 'collapsed' : 'expanded';
+    text.classList.toggle('zhihu-shell-answer-collapsed', folded);
+    button.textContent = folded ? '阅读全文' : '收起回答';
+    button.setAttribute('aria-expanded', folded ? 'false' : 'true');
+  };
+  const collapseInitialAnswers = () => {
+    if (!/^\/question\//.test(location.pathname)) return;
+    answerCards().forEach(card => {
+      const found = findAnswerText(card);
+      if (!found) return;
+      card.classList.add('zhihu-shell-answer-card');
+      forceAnswerLayout(card);
+      removeAnswerExpandProxies(card);
+      hideNativeAnswerControls(card);
+      const actions = answerActions(card);
+      const text = clipTarget(found, actions);
+      if (card.__zhihuShellAnswerText && card.__zhihuShellAnswerText !== text) {
+        if (!card.__zhihuShellKeepExpandedUntil || Date.now() > card.__zhihuShellKeepExpandedUntil) {
+          delete card.dataset.zhihuShellAnswerState;
+        }
+      }
+      card.__zhihuShellAnswerText = text;
+      text.classList.add('zhihu-shell-answer-text');
+      const rows = Array.from(card.querySelectorAll('.zhihu-shell-answer-toggle-row'));
+      let row = rows.shift();
+      rows.forEach(extra => extra.remove());
+      let button = row && row.querySelector('.zhihu-shell-answer-toggle');
+      if (!row || !button) {
+        row = document.createElement('div');
+        row.className = 'zhihu-shell-answer-toggle-row';
+        button = document.createElement('span');
+        button.className = 'zhihu-shell-answer-toggle';
+        button.setAttribute('role', 'button');
+        button.tabIndex = 0;
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          const folded = card.dataset.zhihuShellAnswerState === 'expanded';
+          const currentText = card.__zhihuShellAnswerText;
+          if (!currentText) return;
+          if (!folded) {
+            const nativeExpand = nativeAnswerControls(card).find(element =>
+              /^(阅读全文|展开全文|展开更多)$/.test(controlText(element))
+            );
+            if (nativeExpand) {
+              card.__zhihuShellKeepExpandedUntil = Date.now() + 1500;
+              nativeExpand.style.removeProperty('display');
+              window.__zhihuShellSuppressGuard = true;
+              try { nativeExpand.click(); } finally { window.__zhihuShellSuppressGuard = false; }
+              if (nativeExpand.isConnected) nativeExpand.style.setProperty('display', 'none', 'important');
+            }
+          }
+          setAnswerFolded(card, currentText, button, folded);
+        });
+        button.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          button.click();
+        });
+        row.appendChild(button);
+        let rowAnchor = text;
+        let rowParent = text.parentElement;
+        /* 按钮停在正文那一层之后、操作栏之前，和推荐页的「阅读全文」位置一致；
+           包着操作栏的那层不能进，否则按钮会掉到操作栏下面去 */
+        while (rowParent && rowParent !== card &&
+          rowParent.matches('.RichContent,.RichText,.ztext') &&
+          !(actions && rowParent.contains(actions))) {
+          rowAnchor = rowParent;
+          rowParent = rowParent.parentElement;
+        }
+        if (rowAnchor.parentNode) rowAnchor.parentNode.insertBefore(row, rowAnchor.nextSibling);
+        else card.appendChild(row);
+      }
+      const state = card.dataset.zhihuShellAnswerState;
+      setAnswerFolded(card, text, button, state !== 'expanded');
+      hideNativeAnswerControls(card);
+    });
+  };
   /* ---------- 悬浮「收起」按钮 ----------
      原生的收起控件只长在被展开内容的最末尾：回答读到一半想退出得一路划到底，
      评论读到一半想收起得倒回展开它的那一行。这里固定两个随时可点的按钮。
@@ -204,7 +839,7 @@
   const COMMENTS_COLLAPSE = /^(收起评论|关闭评论|收起评论区)$/;
   const INTERACTIVE_TEXT = /^(阅读全文|展开全文|展开更多|展开评论|查看全部评论|查看全部|显示更多|更多评论|全部评论|收起全文|收起回答|收起|收起评论|关闭评论|收起评论区)$/;
   const READING_CONTAINER = '.ContentItem,.List-item,.AnswerItem,.QuestionAnswer,.RichContent,.Card';
-  const COMMENTS_CONTAINER = '.Comments-container,.Comments,.CommentList,.CommentListV2,[class*="Comment"]';
+  const COMMENTS_CONTAINER = '.Comments-container,.Comments,.CommentList,.CommentListV2';
   /* 命中的可能是包着一层的 wrapper：往下钻到最深的有效节点再点。
      点击会冒泡回真正的控件；反过来点 wrapper 是不会触发内层监听的。 */
   const deepestMatch = (element, pattern) => {
@@ -272,14 +907,16 @@
      （如 1,090 条评论 带千分位逗号），正则漏一种按钮就永远不出现；而且
      同一个按钮点开是它、收起也是它，光看文字分不清是开还是关。
      评论区出现在 DOM 里且可见 = 开，消失 = 关，这是不会骗人的信号。 */
-  const COMMENT_BOX = '.Comments-container,.Comments,.CommentList,.CommentListV2,[class*="Comment"]';
   /* 评论开关的文字形态很多：计数（1,090 条评论）、添加评论、收起评论……全都要认 */
   const COMMENT_TRIGGER = /\d[\d,]*(\.\d+)?\s*万?\s*条评论|条评论|添加评论|写评论|展开评论|查看全部评论|更多评论|全部评论|收起评论|关闭评论/;
   const visibleCommentBox = () => {
-    for (const box of document.querySelectorAll(COMMENT_BOX)) {
+    for (const box of document.querySelectorAll(COMMENTS_CONTAINER)) {
       if (box.closest('.zhihu-shell-persistent-controls')) continue;
+      if (box.matches('button,a,[role="button"]')) continue;
       const rect = box.getBoundingClientRect();
-      if (rect.width > 80 && rect.height > 30) return box;
+      const hasCommentContent = box.matches('.Comments-container,.CommentList,.CommentListV2') ||
+        !!box.querySelector('.CommentItem,.CommentItemV2,[class*="CommentItem"],textarea');
+      if (hasCommentContent && rect.width > 80 && rect.height > 80) return box;
     }
     return null;
   };
@@ -448,6 +1085,12 @@
     runCollapseSteps(steps);
   };
   const clean = () => {
+    setQuestionPageScope();
+    ensureViewport();
+    forceQuestionFlowWidth();
+    forceQuestionHeaderLayout();
+    removeSponsoredCards();
+    collapseInitialAnswers();
     document.querySelectorAll('a,button,[role="button"]').forEach(element => {
       if (isAppButton(element)) element.remove();
     });
@@ -463,7 +1106,7 @@
   const createExpandProxies = () => {
     const expandPattern = /阅读全文|展开(全文|评论|更多)|查看(全部|全部评论)|显示更多|更多评论/;
     document.querySelectorAll('button,[role="button"],a').forEach(element => {
-      if (element.closest('.zhihu-shell-expand-row')) return;
+      if (element.closest('.zhihu-shell-expand-row,.zhihu-shell-answer-toggle-row')) return;
       const text = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
       const label = element.getAttribute('aria-label') || element.getAttribute('title') || '';
       if (!expandPattern.test(text) && !expandPattern.test(label)) return;
@@ -477,6 +1120,11 @@
       }
       const card = element.closest('.ContentItem,.List-item,.AnswerItem,[class*="CommentItem"]');
       if (!card) return;
+      const kind = /评论/.test(text || label) ? 'comments' : 'reading';
+      if (kind === 'reading' && element.closest('.zhihu-shell-answer-card')) {
+        element.style.setProperty('display', 'none', 'important');
+        return;
+      }
       const actions = card.querySelector('.ContentItem-actions,[class*="CommentItem"][class*="footer" i]');
       const row = document.createElement('div');
       row.className = 'zhihu-shell-expand-row';
@@ -487,7 +1135,6 @@
       proxy.addEventListener('click', event => {
         event.preventDefault();
         event.stopPropagation();
-        const kind = /评论/.test(text || label) ? 'comments' : 'reading';
         activatePersistent(kind, element);
         element.click();
         setTimeout(() => {
@@ -546,7 +1193,7 @@
           if (nodeText && nodeText.length <= 12 && INTERACTIVE_TEXT.test(nodeText)) target = node;
         }
       }
-      if (!target || target.closest('.zhihu-shell-persistent-controls,.zhihu-shell-expand-row')) return;
+      if (!target || target.closest('.zhihu-shell-persistent-controls,.zhihu-shell-expand-row,.zhihu-shell-answer-toggle-row')) return;
       const text = controlText(target);
       const label = target.getAttribute('aria-label') || target.getAttribute('title') || '';
       if (/阅读全文|展开全文|展开更多/.test(text) || /阅读全文|展开全文/.test(label)) {

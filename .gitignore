@@ -6,14 +6,4 @@ local.properties
 build-tools/
 
 *.apk
-!知乎简洁版-v1.12.apk
-
-问题截图*.jpg
-zhihu-shell-v*.apk
-知乎套壳-*.apk
-知乎套壳-PC版-*
-更新说明-v*.md
-修复说明.md
-zhihu-comment-fix.js
-androguard.db
-androguard.log
+!知乎简洁版-v1.28.apk
