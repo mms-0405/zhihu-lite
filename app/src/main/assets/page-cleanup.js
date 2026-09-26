@@ -451,7 +451,7 @@
   const controlText = element => (element && (element.textContent || '')).replace(/\s+/g, ' ').trim();
   const COMMENTS_CONTAINER = '.Comments-container,.Comments,.CommentList,.CommentListV2';
   const COMMENT_CONTENT = COMMENTS_CONTAINER + ',[class*="CommentItem"]';
-  const sponsoredLabel = /^.{1,30}\s*的\s*广告$/;
+  const sponsoredLabel = /^.{1,80}\s*的\s*广告(?:\s*[·•|].{0,80})?$/;
   const sponsoredCardSelector =
     '[data-za-detail-view-name*="广告"], [data-za-module-info*="advert"], ' +
     '[data-za-module-info*="commercial"], [class*="Advert"], [class*="advert"], ' +
@@ -478,7 +478,7 @@
   const removeSponsoredCards = () => {
     document.querySelectorAll('span,div,a,p,small').forEach(element => {
       const text = controlText(element);
-      if (!text || text.length > 40 || !sponsoredLabel.test(text)) return;
+      if (!text || text.length > 120 || !sponsoredLabel.test(text)) return;
       if (element.closest('.RichText,.ztext,.CommentContent,[class*="CommentItem"],.AuthorInfo')) return;
       if (Array.from(element.children).some(child => controlText(child) === text)) return;
       const card = findSponsoredCard(element);
