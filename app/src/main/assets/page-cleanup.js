@@ -476,7 +476,7 @@
     return candidate;
   };
   const removeSponsoredCards = () => {
-    document.querySelectorAll('span,div,a,p,small').forEach(element => {
+    document.querySelectorAll('span,div,a,p,small,strong,em,li').forEach(element => {
       const text = controlText(element);
       if (!text || text.length > 120 || !sponsoredLabel.test(text)) return;
       if (element.closest('.RichText,.ztext,.CommentContent,[class*="CommentItem"],.AuthorInfo')) return;
@@ -643,7 +643,7 @@
       for (const candidate of card.querySelectorAll(selector)) {
         if (candidate.closest(
           '.AuthorInfo,.ContentItem-meta,.ContentItem-actions,' +
-          '.zhihu-shell-answer-toggle-row,.Comments-container,.Comments'
+          '.zhihu-shell-answer-toggle-row,' + COMMENT_CONTENT
         )) continue;
         return candidate;
       }
@@ -911,8 +911,10 @@
       if (box.closest('.zhihu-shell-persistent-controls')) continue;
       if (box.matches('button,a,[role="button"]')) continue;
       const rect = box.getBoundingClientRect();
-      const hasCommentContent = box.matches('.Comments-container,.CommentList,.CommentListV2') ||
-        !!box.querySelector('.CommentItem,.CommentItemV2,[class*="CommentItem"],textarea');
+      const hasCommentContent = !!box.querySelector(
+        '.CommentItem,.CommentItemV2,[class*="CommentItem"],textarea,[contenteditable="true"]'
+      ) || (box.matches('.Comments-container,.CommentList,.CommentListV2') &&
+        controlText(box).length > 20);
       if (hasCommentContent && rect.width > 80 && rect.height > 80) return box;
     }
     return null;
@@ -1041,6 +1043,7 @@
   const finishComments = () => {
     window.__zhihuShellCommentsBusy = false;
     setCommentsLabel(false);
+    if (!visibleCommentBox()) persistentState.comments = null;
     updatePersistentControls();
   };
   /* 逐级试：每招过后 320ms 复查，评论区还在就换下一招 */
@@ -1193,6 +1196,7 @@
     };
     window.__zhihuShellControlsViewportListener = refreshControls;
     document.addEventListener('scroll', refreshControls, { passive: true, capture: true });
+    window.addEventListener('scroll', refreshControls, { passive: true });
     window.addEventListener('resize', refreshControls, { passive: true });
   }
   if (!window.__zhihuShellObserver) {
