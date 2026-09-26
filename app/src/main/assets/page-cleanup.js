@@ -449,6 +449,8 @@
       (text.length <= 40 && appButton.test(text));
   };
   const controlText = element => (element && (element.textContent || '')).replace(/\s+/g, ' ').trim();
+  const COMMENTS_CONTAINER = '.Comments-container,.Comments,.CommentList,.CommentListV2';
+  const COMMENT_CONTENT = COMMENTS_CONTAINER + ',[class*="CommentItem"]';
   const sponsoredLabel = /^.{1,30}\s*的\s*广告$/;
   const sponsoredCardSelector =
     '[data-za-detail-view-name*="广告"], [data-za-module-info*="advert"], ' +
@@ -664,6 +666,7 @@
     card.querySelectorAll('button,[role="button"],a')
   ).filter(element => {
     if (element.closest('.zhihu-shell-answer-toggle-row,.zhihu-shell-expand-row')) return false;
+    if (element.closest(COMMENT_CONTENT)) return false;
     const text = controlText(element);
     return text.length <= 12 && /^(阅读全文|展开全文|展开更多|收起全文|收起回答|收起)$/.test(text);
   });
@@ -829,17 +832,10 @@
       hideNativeAnswerControls(card);
     });
   };
-  /* ---------- 悬浮「收起」按钮 ----------
-     原生的收起控件只长在被展开内容的最末尾：回答读到一半想退出得一路划到底，
-     评论读到一半想收起得倒回展开它的那一行。这里固定两个随时可点的按钮。
-     显隐规则：只要用户点过「展开」就一定显示，绝不依赖「能不能找到原生收起控件」——
-     知乎的收起经常是纯 div（不带 button/role），React 重渲染又会整个换掉节点，
-     按控件探测会导致按钮根本不出现，所以这里按状态显示。 */
   const READING_COLLAPSE = /^(收起全文|收起回答|收起)$/;
   const COMMENTS_COLLAPSE = /^(收起评论|关闭评论|收起评论区)$/;
   const INTERACTIVE_TEXT = /^(阅读全文|展开全文|展开更多|展开评论|查看全部评论|查看全部|显示更多|更多评论|全部评论|收起全文|收起回答|收起|收起评论|关闭评论|收起评论区)$/;
   const READING_CONTAINER = '.ContentItem,.List-item,.AnswerItem,.QuestionAnswer,.RichContent,.Card';
-  const COMMENTS_CONTAINER = '.Comments-container,.Comments,.CommentList,.CommentListV2';
   /* 命中的可能是包着一层的 wrapper：往下钻到最深的有效节点再点。
      点击会冒泡回真正的控件；反过来点 wrapper 是不会触发内层监听的。 */
   const deepestMatch = (element, pattern) => {
@@ -867,6 +863,7 @@
       if (!root || !root.querySelectorAll) return;
       root.querySelectorAll(includePlain ? 'button,[role="button"],a,div,span' : 'button,[role="button"],a').forEach(element => {
         if (element.closest('.zhihu-shell-persistent-controls,.zhihu-shell-expand-row')) return;
+        if (reading && element.closest(COMMENT_CONTENT)) return;
         const text = controlText(element);
         if (!text || text.length > 8 || !pattern.test(text)) return;
         if (strict && !element.closest(container)) return;
@@ -950,12 +947,24 @@
     const reading = controls.querySelector('[data-kind="reading"]');
     const comments = controls.querySelector('[data-kind="comments"]');
     const readingAlive = stateAlive('reading');
+    const commentBox = visibleCommentBox();
+    const commentsAlive = !!commentBox;
+    const onScreen = element => {
+      const rect = element.getBoundingClientRect();
+      const header = document.querySelector('.AppHeader');
+      const headerBottom = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      return rect.width > 0 && rect.height > 0 && rect.top >= headerBottom &&
+        rect.bottom <= window.innerHeight && rect.left >= 0 && rect.right <= window.innerWidth;
+    };
+    const readingVisible = readingAlive && !commentsAlive &&
+      !collectCollapseTargets('reading', persistentState.reading && persistentState.reading.scope).some(onScreen);
+    const commentsVisible = commentsAlive &&
+      !collectCollapseTargets('comments', findCard(commentBox) || commentBox).some(onScreen);
     if (!readingAlive) persistentState.reading = null;
     reading.dataset.active = readingAlive ? 'true' : 'false';
-    reading.style.display = readingAlive ? 'inline-flex' : 'none';
-    const commentsAlive = !!visibleCommentBox();
+    reading.style.display = readingVisible ? 'inline-flex' : 'none';
     comments.dataset.active = commentsAlive ? 'true' : 'false';
-    comments.style.display = commentsAlive ? 'inline-flex' : 'none';
+    comments.style.display = commentsVisible ? 'inline-flex' : 'none';
   };
   const activatePersistent = (kind, trigger) => {
     persistentState[kind] = { trigger, scope: findCard(trigger) };
@@ -1109,6 +1118,7 @@
       if (element.closest('.zhihu-shell-expand-row,.zhihu-shell-answer-toggle-row')) return;
       const text = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
       const label = element.getAttribute('aria-label') || element.getAttribute('title') || '';
+      if (element.closest(COMMENT_CONTENT) || /回复/.test(text + label)) return;
       if (!expandPattern.test(text) && !expandPattern.test(label)) return;
       if (element.dataset.zhihuShellProxy === 'true') {
         /* 知乎的 React 重渲染会删掉我们插进去的按钮，而挂在原生按钮上的
@@ -1172,6 +1182,19 @@
     profileMain.insertBefore(links, profileMain.firstChild);
   };
   clean();
+  if (!window.__zhihuShellControlsViewportListener) {
+    let controlsFrame = null;
+    const refreshControls = () => {
+      if (controlsFrame !== null) return;
+      controlsFrame = requestAnimationFrame(() => {
+        controlsFrame = null;
+        updatePersistentControls();
+      });
+    };
+    window.__zhihuShellControlsViewportListener = refreshControls;
+    document.addEventListener('scroll', refreshControls, { passive: true, capture: true });
+    window.addEventListener('resize', refreshControls, { passive: true });
+  }
   if (!window.__zhihuShellObserver) {
     let cleanupTimer;
     window.__zhihuShellObserver = new MutationObserver(() => {
@@ -1196,10 +1219,12 @@
       if (!target || target.closest('.zhihu-shell-persistent-controls,.zhihu-shell-expand-row,.zhihu-shell-answer-toggle-row')) return;
       const text = controlText(target);
       const label = target.getAttribute('aria-label') || target.getAttribute('title') || '';
-      if (/阅读全文|展开全文|展开更多/.test(text) || /阅读全文|展开全文/.test(label)) {
-        activatePersistent('reading', target);
-      } else if (/收起(全文|回答)|折叠(全文|回答)?|^收起$/.test(text) || /收起(全文|回答)/.test(label)) {
-        clearPersistent('reading');
+      if (!target.closest(COMMENT_CONTENT) && !/回复/.test(text + label)) {
+        if (/阅读全文|展开全文|展开更多/.test(text) || /阅读全文|展开全文/.test(label)) {
+          activatePersistent('reading', target);
+        } else if (/收起(全文|回答)|折叠(全文|回答)?|^收起$/.test(text) || /收起(全文|回答)/.test(label)) {
+          clearPersistent('reading');
+        }
       }
       if (/(^|\s)\d[\d,]*(\.\d+)?\s*万?\s*条评论|添加评论|写评论|展开评论|查看全部评论|更多评论|全部评论/.test(text) || /展开评论|查看全部评论/.test(label)) {
         activatePersistent('comments', target);
