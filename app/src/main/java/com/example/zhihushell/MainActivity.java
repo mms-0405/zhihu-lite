@@ -94,7 +94,7 @@ public final class MainActivity extends Activity {
         toolbar.addView(back, new LinearLayout.LayoutParams(dp(48), -1));
         Button refresh = toolbarButton("↻", R.string.refresh);
         refresh.setTextSize(30);
-        refresh.setOnClickListener(view -> webView.reload());
+        refresh.setOnClickListener(view -> refreshPage());
         toolbar.addView(refresh, new LinearLayout.LayoutParams(dp(48), -1));
         titleView = new TextView(this);
         titleView.setText(R.string.app_name);
@@ -136,6 +136,16 @@ public final class MainActivity extends Activity {
     }
 
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+
+    private void refreshPage() {
+        String url = webView.getUrl();
+        webView.stopLoading();
+        if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+            webView.loadUrl(url);
+        } else {
+            webView.reload();
+        }
+    }
 
     private void configureWebView() {
         WebSettings settings = webView.getSettings();

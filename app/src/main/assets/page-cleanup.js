@@ -491,7 +491,8 @@
   };
   const forceQuestionFlowWidth = () => {
     if (!/^\/question\//.test(location.pathname)) return;
-    const width = Math.max(1, document.documentElement.clientWidth || window.innerWidth || 1);
+    const width = document.documentElement.clientWidth || window.innerWidth || 0;
+    if (width < 100) return;
     const selectors = [
       '.Question-main', '.Question-mainColumn', '.QuestionAnswers-answers',
       '.QuestionAnswer-content', '[class*="QuestionAnswers"]'
@@ -508,7 +509,8 @@
   };
   const forceQuestionHeaderLayout = () => {
     if (!/^\/question\//.test(location.pathname)) return;
-    const width = Math.max(1, document.documentElement.clientWidth || window.innerWidth || 1);
+    const width = document.documentElement.clientWidth || window.innerWidth || 0;
+    if (width < 100) return;
     const set = (element, property, value) => element.style.setProperty(property, value, 'important');
     const roots = document.querySelectorAll(
       '.QuestionHeader,.QuestionHeader-main,.QuestionHeader-content,.QuestionHeader-detail'
@@ -1185,6 +1187,14 @@
     profileMain.insertBefore(links, profileMain.firstChild);
   };
   clean();
+  if (!window.__zhihuShellSettlingTimers) {
+    window.__zhihuShellSettlingTimers = [180, 700, 1800].map(delay =>
+      window.setTimeout(() => {
+        window.__zhihuShellSettlingTimers = window.__zhihuShellSettlingTimers.filter(timer => timer !== delay);
+        clean();
+      }, delay)
+    );
+  }
   if (!window.__zhihuShellControlsViewportListener) {
     let controlsFrame = null;
     const refreshControls = () => {
