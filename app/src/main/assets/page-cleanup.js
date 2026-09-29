@@ -653,14 +653,18 @@
     return null;
   };
   const answerCards = () => {
-    const specific = Array.from(document.querySelectorAll(ANSWER_CARD_SELECTOR))
+    const matches = Array.from(document.querySelectorAll(ANSWER_CARD_SELECTOR))
       .filter(card => !card.closest('.Comments-container,.Comments,.CommentList,.CommentListV2'));
+    const specific = matches.filter(card =>
+      !matches.some(parent => parent !== card && parent.contains(card))
+    );
     const generic = Array.from(document.querySelectorAll(
       '.Question-main .ContentItem, .zhihu-shell-question-page .ContentItem'
     )).filter(card =>
       findAnswerText(card) &&
       !card.closest('.Comments-container,.Comments,.CommentList,.CommentListV2,.QuestionHeader') &&
-      !specific.some(specificCard => specificCard !== card && specificCard.contains(card))
+      !specific.some(specificCard => specificCard !== card &&
+        (specificCard.contains(card) || card.contains(specificCard)))
     );
     return Array.from(new Set([...specific, ...generic]));
   };
@@ -758,7 +762,8 @@
   const setAnswerFolded = (card, text, button, folded) => {
     card.dataset.zhihuShellAnswerState = folded ? 'collapsed' : 'expanded';
     text.classList.toggle('zhihu-shell-answer-collapsed', folded);
-    button.textContent = folded ? '阅读全文' : '收起回答';
+    const label = folded ? '阅读全文' : '收起回答';
+    if (button.textContent !== label) button.textContent = label;
     button.setAttribute('aria-expanded', folded ? 'false' : 'true');
   };
   const collapseInitialAnswers = () => {
