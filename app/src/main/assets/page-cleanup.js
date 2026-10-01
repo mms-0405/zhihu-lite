@@ -1124,10 +1124,12 @@
   };
   const createExpandProxies = () => {
     const expandPattern = /阅读全文|展开(全文|评论|更多)|查看(全部|全部评论)|显示更多|更多评论/;
+    const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)/;
     document.querySelectorAll('button,[role="button"],a').forEach(element => {
       if (element.closest('.zhihu-shell-expand-row,.zhihu-shell-answer-toggle-row')) return;
       const text = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
       const label = element.getAttribute('aria-label') || element.getAttribute('title') || '';
+      if (answerListTrigger.test(text) || answerListTrigger.test(label)) return;
       if (element.closest(COMMENT_CONTENT) || /回复/.test(text + label)) return;
       if (!expandPattern.test(text) && !expandPattern.test(label)) return;
       if (element.dataset.zhihuShellProxy === 'true') {
