@@ -645,57 +645,7 @@
       '.QuestionAnswers-answers .AnswerItem, .QuestionAnswers-answers [class*="AnswerItem"],' +
       '.QuestionAnswers-answers .ContentItem'
     );
-    if (navigation.documentId === answerListDocumentId && navigation.url === location.href && answers) return;
-    window.scrollTo(0, 0);
-    document.querySelectorAll('.Question-main,.Question-mainColumn,.QuestionAnswers-answers').forEach(element => {
-      element.scrollTop = 0;
-    });
     if (answers) sessionStorage.removeItem(answerListNavigationKey);
-  };
-  const watchAnswerListNavigation = () => {
-    if (window.__zhihuShellAnswerListTimer) return;
-    const check = () => {
-      window.__zhihuShellAnswerListTimer = null;
-      let navigation;
-      try {
-        navigation = JSON.parse(sessionStorage.getItem(answerListNavigationKey) || 'null');
-      } catch (error) {
-        return;
-      }
-      if (!navigation || !/^\/question\//.test(location.pathname)) return;
-      restoreAnswerListScroll();
-      if (!sessionStorage.getItem(answerListNavigationKey)) return;
-      if (Date.now() - navigation.started >= 15000) {
-        if (navigation.documentId === answerListDocumentId && navigation.url === location.href &&
-            document.querySelector('.QuestionAnswers-answers .AnswerItem, .QuestionAnswers-answers .ContentItem')) {
-          sessionStorage.removeItem(answerListNavigationKey);
-          return;
-        }
-        if (!navigation.retried) {
-          navigation.retried = true;
-          navigation.started = Date.now();
-          sessionStorage.setItem(answerListNavigationKey, JSON.stringify(navigation));
-          window.location.reload();
-        } else {
-          sessionStorage.removeItem(answerListNavigationKey);
-          if (!document.querySelector('.zhihu-shell-answer-list-retry')) {
-            const retry = document.createElement('button');
-            retry.type = 'button';
-            retry.className = 'zhihu-shell-answer-list-retry';
-            retry.textContent = '回答加载失败，点击重新打开问题';
-            retry.style.cssText = 'position:fixed;left:16px;right:16px;bottom:24px;z-index:2147483647;padding:12px;border:0;border-radius:8px;background:#1772f6;color:#fff;font-size:16px';
-            retry.addEventListener('click', () => {
-              const question = location.pathname.match(/^\/question\/[^/]+/);
-              if (question) window.location.href = question[0];
-            });
-            (document.body || document.documentElement).appendChild(retry);
-          }
-          return;
-        }
-      }
-      window.__zhihuShellAnswerListTimer = window.setTimeout(check, 1000);
-    };
-    window.__zhihuShellAnswerListTimer = window.setTimeout(check, 1000);
   };
   const findCard = element => element && element.closest(
     '.ContentItem,.List-item,.AnswerItem,[class*="CommentItem"],.Card'
@@ -1181,7 +1131,6 @@
     forceQuestionFlowWidth();
     forceQuestionHeaderLayout();
     restoreAnswerListScroll();
-    watchAnswerListNavigation();
     removeSponsoredCards();
     collapseInitialAnswers();
     document.querySelectorAll('a,button,[role="button"]').forEach(element => {
@@ -1321,8 +1270,6 @@
             url: location.href
           }));
         } catch (error) {}
-        window.setTimeout(() => window.scrollTo(0, 0), 0);
-        watchAnswerListNavigation();
       }
       if (!target.closest(COMMENT_CONTENT) && !/回复/.test(text + label)) {
         if (/阅读全文|展开全文|展开更多/.test(text) || /阅读全文|展开全文/.test(label)) {
