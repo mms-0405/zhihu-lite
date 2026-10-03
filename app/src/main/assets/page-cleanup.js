@@ -452,6 +452,9 @@
   const COMMENTS_CONTAINER = '.Comments-container,.Comments,.CommentList,.CommentListV2';
   const COMMENT_CONTENT = COMMENTS_CONTAINER + ',[class*="CommentItem"]';
   const sponsoredLabel = /^.{1,80}\s*的\s*广告(?:\s*[·•|].{0,80})?$/;
+  const sponsoredDiscussion = /\d[\d,]*\+?\s*热议/;
+  const sponsoredContent = /电商合规方案陪跑/;
+  const sponsoredAccount = /陈述财税/;
   const sponsoredCardSelector =
     '[data-za-detail-view-name*="广告"], [data-za-module-info*="advert"], ' +
     '[data-za-module-info*="commercial"], [class*="Advert"], [class*="advert"], ' +
@@ -482,7 +485,21 @@
       if (element.closest('.RichText,.ztext,.CommentContent,[class*="CommentItem"],.AuthorInfo')) return;
       if (Array.from(element.children).some(child => controlText(child) === text)) return;
       const card = findSponsoredCard(element);
-      if (card) card.remove();
+      if (card) card.style.setProperty('display', 'none', 'important');
+    });
+    document.querySelectorAll('.QuestionAnswers-answers,.Question-mainColumn').forEach(list => {
+      const cards = new Set(list.querySelectorAll('.List-item,.Card,.ContentItem'));
+      if (list.matches('.QuestionAnswers-answers')) Array.from(list.children).forEach(card => cards.add(card));
+      cards.forEach(card => {
+        if (card.closest('.AnswerItem,[class*="AnswerItem"]')) return;
+        const text = controlText(card);
+        if (text.length > 600 || !sponsoredContent.test(text) ||
+            !sponsoredAccount.test(text) || !sponsoredDiscussion.test(text)) return;
+        if (Array.from(card.querySelectorAll('.List-item,.Card,.ContentItem')).some(child =>
+          child !== card && sponsoredContent.test(controlText(child)) &&
+          sponsoredAccount.test(controlText(child)) && sponsoredDiscussion.test(controlText(child)))) return;
+        card.style.setProperty('display', 'none', 'important');
+      });
     });
   };
   const setQuestionPageScope = () => {
@@ -626,15 +643,14 @@
   };
   window.__zhihuShellPersistentState = persistentState;
   const answerListNavigationKey = 'zhihu-shell-answer-list-navigation';
-  const answerListDocumentId = window.__zhihuShellDocumentId || String(Date.now()) + Math.random();
-  window.__zhihuShellDocumentId = answerListDocumentId;
-  const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)/;
+  const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)|^更多回答$/;
+  const questionId = () => (location.pathname.match(/^\/question\/([^/]+)/) || [])[1];
   const isQuestionAnswersPage = () => /^\/question\/[^/]+\/answers(?:\/|$)/.test(location.pathname);
-  const answerListNavigationPending = () => {
+  const useNativeAnswerList = () => {
     if (isQuestionAnswersPage()) return true;
     try {
       const navigation = JSON.parse(sessionStorage.getItem(answerListNavigationKey) || 'null');
-      return !!navigation && Date.now() - Number(navigation.started || 0) < 20000;
+      return !!navigation && !!questionId() && navigation.questionId === questionId();
     } catch (error) {
       return false;
     }
@@ -646,24 +662,6 @@
       Number(window.__zhihuShellCleanupSuspendedUntil || 0),
       until
     );
-  };
-  const restoreAnswerListScroll = () => {
-    let navigation;
-    try {
-      navigation = JSON.parse(sessionStorage.getItem(answerListNavigationKey) || 'null');
-    } catch (error) {
-      return;
-    }
-    if (!navigation) return;
-    if (Date.now() - navigation.started > 40000 || !/^\/question\//.test(location.pathname)) {
-      sessionStorage.removeItem(answerListNavigationKey);
-      return;
-    }
-    const answers = document.querySelector(
-      '.QuestionAnswers-answers .AnswerItem, .QuestionAnswers-answers [class*="AnswerItem"],' +
-      '.QuestionAnswers-answers .ContentItem'
-    );
-    if (answers) sessionStorage.removeItem(answerListNavigationKey);
   };
   const findCard = element => element && element.closest(
     '.ContentItem,.List-item,.AnswerItem,[class*="CommentItem"],.Card'
@@ -1158,13 +1156,12 @@
     ensureViewport();
     forceQuestionFlowWidth();
     forceQuestionHeaderLayout();
-    const nativeAnswerMode = answerListNavigationPending();
-    restoreAnswerListScroll();
+    const nativeAnswerMode = useNativeAnswerList();
+    removeSponsoredCards();
     if (nativeAnswerMode) {
       updatePersistentControls();
       return;
     }
-    removeSponsoredCards();
     collapseInitialAnswers();
     document.querySelectorAll('a,button,[role="button"]').forEach(element => {
       if (isAppButton(element)) element.remove();
@@ -1289,7 +1286,8 @@
         let node = event.target;
         for (let depth = 0; node && depth < 4 && !target; depth++, node = node.parentElement) {
           const nodeText = controlText(node);
-          if (nodeText && nodeText.length <= 12 && INTERACTIVE_TEXT.test(nodeText)) target = node;
+          if (nodeText && nodeText.length <= 40 &&
+              (INTERACTIVE_TEXT.test(nodeText) || answerListTrigger.test(nodeText))) target = node;
         }
       }
       if (!target || target.closest('.zhihu-shell-persistent-controls,.zhihu-shell-expand-row,.zhihu-shell-answer-toggle-row')) return;
@@ -1299,9 +1297,7 @@
         suspendCleanup(3200);
         try {
           sessionStorage.setItem(answerListNavigationKey, JSON.stringify({
-            started: Date.now(),
-            documentId: answerListDocumentId,
-            url: location.href
+            questionId: questionId()
           }));
         } catch (error) {}
       } else if ((questionDetailTrigger.test(text) || questionDetailTrigger.test(label)) &&

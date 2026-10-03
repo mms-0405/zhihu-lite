@@ -13,8 +13,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.webkit.CookieManager;
+import android.webkit.ConsoleMessage;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -51,6 +53,9 @@ public final class MainActivity extends Activity {
     private ProgressBar progressBar;
     private TextView titleView;
     private String cleanupScript;
+    private String lastPageError = "";
+    private String lastApiError = "";
+    private String lastJsError = "";
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -95,6 +100,10 @@ public final class MainActivity extends Activity {
         Button refresh = toolbarButton("↻", R.string.refresh);
         refresh.setTextSize(30);
         refresh.setOnClickListener(view -> refreshPage());
+        refresh.setOnLongClickListener(view -> {
+            copyPageDiagnostics();
+            return true;
+        });
         toolbar.addView(refresh, new LinearLayout.LayoutParams(dp(48), -1));
         titleView = new TextView(this);
         titleView.setText(R.string.app_name);
@@ -177,15 +186,59 @@ public final class MainActivity extends Activity {
             @Override public void onReceivedTitle(WebView view, String title) {
                 titleView.setText(title == null || title.isEmpty() ? getString(R.string.app_name) : title);
             }
+            @Override public boolean onConsoleMessage(ConsoleMessage message) {
+                if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                    lastJsError = message.message();
+                }
+                return false;
+            }
         });
     }
 
     private void injectPageCleanup(WebView view) { view.evaluateJavascript(cleanupScript, null); }
 
+    private void copyPageDiagnostics() {
+        String url = webView.getUrl();
+        String base = "URL: " + (url == null ? "" : url) + "\nProgress: " + webView.getProgress() +
+                "\nPage error: " + lastPageError + "\nAPI error: " + lastApiError +
+                "\nJS error: " + lastJsError + "\nDOM: ";
+        String script = "(function(){var list=document.querySelector('.QuestionAnswers-answers');" +
+                "var box=list&&list.getBoundingClientRect();" +
+                "return JSON.stringify({ready:document.readyState,title:document.title," +
+                "bodyText:document.body?document.body.innerText.length:0," +
+                "root:!!document.querySelector('#root'),answers:document.querySelectorAll('.AnswerItem').length," +
+                "listChildren:list?list.children.length:-1,listDisplay:list?getComputedStyle(list).display:'missing'," +
+                "listTop:box?Math.round(box.top):null,listHeight:box?Math.round(box.height):null," +
+                "scrollY:window.scrollY,pageHeight:document.documentElement.scrollHeight," +
+                "nativeMode:sessionStorage.getItem('zhihu-shell-answer-list-navigation')});})()";
+        webView.evaluateJavascript(script, result -> {
+            String details = result == null ? "unavailable" : result;
+            try { details = String.valueOf(new org.json.JSONTokener(details).nextValue()); }
+            catch (org.json.JSONException error) { details = result; }
+            ((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(
+                    ClipData.newPlainText(getString(R.string.app_name), base + details));
+            Toast.makeText(this, R.string.diagnostics_copied, Toast.LENGTH_SHORT).show();
+        });
+    }
+
     private final class ZhihuWebViewClient extends WebViewClient {
-        @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) { injectPageCleanup(view); }
+        @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+            lastPageError = "";
+            lastApiError = "";
+            lastJsError = "";
+            injectPageCleanup(view);
+        }
         @Override public void onPageCommitVisible(WebView view, String url) { injectPageCleanup(view); }
         @Override public void onPageFinished(WebView view, String url) { injectPageCleanup(view); }
+        @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+            if (request.isForMainFrame()) lastPageError = "network " + error.getErrorCode();
+        }
+        @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
+            if (request.isForMainFrame()) lastPageError = "HTTP " + response.getStatusCode();
+            else if (request.getUrl().getPath() != null && request.getUrl().getPath().startsWith("/api/")) {
+                lastApiError = "HTTP " + response.getStatusCode() + " " + request.getUrl().getPath();
+            }
+        }
         @Override public void onReceivedSslError(WebView view, SslErrorHandler handler, android.net.http.SslError error) { handler.cancel(); }
         @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             Uri uri = request.getUrl();

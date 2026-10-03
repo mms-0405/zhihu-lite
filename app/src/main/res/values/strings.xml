@@ -5,6 +5,7 @@
     <string name="refresh">刷新</string>
     <string name="copy_link">复制链接</string>
     <string name="link_copied">链接已复制</string>
+    <string name="diagnostics_copied">页面诊断已复制</string>
     <string name="cannot_open_link">无法打开链接</string>
     <string name="unsafe_link_blocked">已拦截不安全链接</string>
     <string name="app_link_blocked">已拦截跳转客户端</string>
