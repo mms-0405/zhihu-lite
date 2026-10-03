@@ -629,6 +629,16 @@
   const answerListDocumentId = window.__zhihuShellDocumentId || String(Date.now()) + Math.random();
   window.__zhihuShellDocumentId = answerListDocumentId;
   const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)/;
+  const isQuestionAnswersPage = () => /^\/question\/[^/]+\/answers(?:\/|$)/.test(location.pathname);
+  const answerListNavigationPending = () => {
+    if (isQuestionAnswersPage()) return true;
+    try {
+      const navigation = JSON.parse(sessionStorage.getItem(answerListNavigationKey) || 'null');
+      return !!navigation && Date.now() - Number(navigation.started || 0) < 20000;
+    } catch (error) {
+      return false;
+    }
+  };
   const questionDetailTrigger = /^(显示全部|展开问题)$/;
   const suspendCleanup = milliseconds => {
     const until = Date.now() + milliseconds;
@@ -1148,7 +1158,12 @@
     ensureViewport();
     forceQuestionFlowWidth();
     forceQuestionHeaderLayout();
+    const nativeAnswerMode = answerListNavigationPending();
     restoreAnswerListScroll();
+    if (nativeAnswerMode) {
+      updatePersistentControls();
+      return;
+    }
     removeSponsoredCards();
     collapseInitialAnswers();
     document.querySelectorAll('a,button,[role="button"]').forEach(element => {
