@@ -629,6 +629,14 @@
   const answerListDocumentId = window.__zhihuShellDocumentId || String(Date.now()) + Math.random();
   window.__zhihuShellDocumentId = answerListDocumentId;
   const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)/;
+  const questionDetailTrigger = /^(显示全部|展开问题)$/;
+  const suspendCleanup = milliseconds => {
+    const until = Date.now() + milliseconds;
+    window.__zhihuShellCleanupSuspendedUntil = Math.max(
+      Number(window.__zhihuShellCleanupSuspendedUntil || 0),
+      until
+    );
+  };
   const restoreAnswerListScroll = () => {
     let navigation;
     try {
@@ -1126,6 +1134,16 @@
     runCollapseSteps(steps);
   };
   const clean = () => {
+    const suspendedUntil = Number(window.__zhihuShellCleanupSuspendedUntil || 0);
+    if (suspendedUntil > Date.now()) {
+      if (!window.__zhihuShellDeferredCleanTimer) {
+        window.__zhihuShellDeferredCleanTimer = window.setTimeout(() => {
+          window.__zhihuShellDeferredCleanTimer = null;
+          clean();
+        }, suspendedUntil - Date.now() + 80);
+      }
+      return;
+    }
     setQuestionPageScope();
     ensureViewport();
     forceQuestionFlowWidth();
@@ -1263,6 +1281,7 @@
       const text = controlText(target);
       const label = target.getAttribute('aria-label') || target.getAttribute('title') || '';
       if (answerListTrigger.test(text) || answerListTrigger.test(label)) {
+        suspendCleanup(3200);
         try {
           sessionStorage.setItem(answerListNavigationKey, JSON.stringify({
             started: Date.now(),
@@ -1270,6 +1289,9 @@
             url: location.href
           }));
         } catch (error) {}
+      } else if ((questionDetailTrigger.test(text) || questionDetailTrigger.test(label)) &&
+        target.closest('.QuestionHeader')) {
+        suspendCleanup(2200);
       }
       if (!target.closest(COMMENT_CONTENT) && !/回复/.test(text + label)) {
         if (/阅读全文|展开全文|展开更多/.test(text) || /阅读全文|展开全文/.test(label)) {
