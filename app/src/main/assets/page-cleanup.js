@@ -646,8 +646,9 @@
   const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)|^更多回答$/;
   const questionId = () => (location.pathname.match(/^\/question\/([^/]+)/) || [])[1];
   const isQuestionAnswersPage = () => /^\/question\/[^/]+\/answers(?:\/|$)/.test(location.pathname);
+  const isQuestionAnswerPage = () => /^\/question\/[^/]+\/answer\/[^/]+(?:\/|$)/.test(location.pathname);
   const useNativeAnswerList = () => {
-    if (isQuestionAnswersPage()) return true;
+    if (isQuestionAnswersPage() || isQuestionAnswerPage()) return true;
     try {
       const navigation = JSON.parse(sessionStorage.getItem(answerListNavigationKey) || 'null');
       return !!navigation && !!questionId() && navigation.questionId === questionId();
@@ -726,6 +727,20 @@
     nativeAnswerControls(card).forEach(element => {
       element.dataset.zhihuShellManagedAnswer = 'true';
       element.style.setProperty('display', 'none', 'important');
+    });
+  };
+  const restoreNativeAnswers = () => {
+    document.querySelectorAll('.zhihu-shell-answer-card').forEach(card => {
+      card.classList.remove('zhihu-shell-answer-card');
+      delete card.dataset.zhihuShellAnswerState;
+      card.querySelectorAll('.zhihu-shell-answer-text').forEach(text => {
+        text.classList.remove('zhihu-shell-answer-text', 'zhihu-shell-answer-collapsed');
+      });
+      card.querySelectorAll('.zhihu-shell-answer-toggle-row').forEach(row => row.remove());
+      card.querySelectorAll('[data-zhihu-shell-managed-answer]').forEach(control => {
+        control.style.removeProperty('display');
+        delete control.dataset.zhihuShellManagedAnswer;
+      });
     });
   };
   const forceAnswerLayout = card => {
@@ -1157,8 +1172,9 @@
     forceQuestionFlowWidth();
     forceQuestionHeaderLayout();
     const nativeAnswerMode = useNativeAnswerList();
-    removeSponsoredCards();
+    if (!isQuestionAnswerPage()) removeSponsoredCards();
     if (nativeAnswerMode) {
+      restoreNativeAnswers();
       updatePersistentControls();
       return;
     }
