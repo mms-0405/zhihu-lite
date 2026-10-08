@@ -642,19 +642,17 @@
     comments: null
   };
   window.__zhihuShellPersistentState = persistentState;
-  const answerListNavigationKey = 'zhihu-shell-answer-list-navigation';
   const answerListTrigger = /查看\s*全部[\s\S]{0,30}(回答|答复)|^更多回答$/;
   const questionId = () => (location.pathname.match(/^\/question\/([^/]+)/) || [])[1];
   const isQuestionAnswersPage = () => /^\/question\/[^/]+\/answers(?:\/|$)/.test(location.pathname);
   const isQuestionAnswerPage = () => /^\/question\/[^/]+\/answer\/[^/]+(?:\/|$)/.test(location.pathname);
   const useNativeAnswerList = () => {
-    if (isQuestionAnswersPage() || isQuestionAnswerPage()) return true;
-    try {
-      const navigation = JSON.parse(sessionStorage.getItem(answerListNavigationKey) || 'null');
-      return !!navigation && !!questionId() && navigation.questionId === questionId();
-    } catch (error) {
-      return false;
+    const currentQuestionId = questionId();
+    if (window.__zhihuShellNativeAnswerQuestionId !== currentQuestionId) {
+      window.__zhihuShellNativeAnswerQuestionId = null;
     }
+    if (isQuestionAnswersPage() || isQuestionAnswerPage()) return true;
+    return !!currentQuestionId && window.__zhihuShellNativeAnswerQuestionId === currentQuestionId;
   };
   const questionDetailTrigger = /^(显示全部|展开问题)$/;
   const suspendCleanup = milliseconds => {
@@ -1373,11 +1371,7 @@
       const label = target.getAttribute('aria-label') || target.getAttribute('title') || '';
       if (answerListTrigger.test(text) || answerListTrigger.test(label)) {
         suspendCleanup(3200);
-        try {
-          sessionStorage.setItem(answerListNavigationKey, JSON.stringify({
-            questionId: questionId()
-          }));
-        } catch (error) {}
+        window.__zhihuShellNativeAnswerQuestionId = questionId();
       } else if ((questionDetailTrigger.test(text) || questionDetailTrigger.test(label)) &&
         target.closest('.QuestionHeader')) {
         suspendCleanup(2200);

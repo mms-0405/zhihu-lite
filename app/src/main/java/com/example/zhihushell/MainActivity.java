@@ -188,7 +188,7 @@ public final class MainActivity extends Activity {
             }
             @Override public boolean onConsoleMessage(ConsoleMessage message) {
                 if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
-                    lastJsError = message.message();
+                    lastJsError = message.message() + " at " + message.sourceId() + ":" + message.lineNumber();
                 }
                 return false;
             }
@@ -203,14 +203,21 @@ public final class MainActivity extends Activity {
                 "\nPage error: " + lastPageError + "\nAPI error: " + lastApiError +
                 "\nJS error: " + lastJsError + "\nDOM: ";
         String script = "(function(){var list=document.querySelector('.QuestionAnswers-answers');" +
-                "var box=list&&list.getBoundingClientRect();" +
+                "var box=list&&list.getBoundingClientRect(),answer=document.querySelector('.AnswerItem');" +
+                "var parents=[],node=list;for(var depth=0;node&&depth<8;depth++,node=node.parentElement){" +
+                "var style=getComputedStyle(node),rect=node.getBoundingClientRect();" +
+                "parents.push({tag:node.tagName,class:String(node.className).slice(0,90)," +
+                "display:style.display,visibility:style.visibility,height:Math.round(rect.height)," +
+                "clientHeight:node.clientHeight,scrollHeight:node.scrollHeight});}" +
                 "return JSON.stringify({ready:document.readyState,title:document.title," +
                 "bodyText:document.body?document.body.innerText.length:0," +
                 "root:!!document.querySelector('#root'),answers:document.querySelectorAll('.AnswerItem').length," +
                 "listChildren:list?list.children.length:-1,listDisplay:list?getComputedStyle(list).display:'missing'," +
                 "listTop:box?Math.round(box.top):null,listHeight:box?Math.round(box.height):null," +
+                "listText:list?list.textContent.length:0,firstAnswerText:answer?answer.textContent.length:0," +
+                "firstAnswerHeight:answer?Math.round(answer.getBoundingClientRect().height):null,parents:parents," +
                 "scrollY:window.scrollY,pageHeight:document.documentElement.scrollHeight," +
-                "nativeMode:sessionStorage.getItem('zhihu-shell-answer-list-navigation')});})()";
+                "nativeMode:window.__zhihuShellNativeAnswerQuestionId||null});})()";
         webView.evaluateJavascript(script, result -> {
             String details = result == null ? "unavailable" : result;
             try { details = String.valueOf(new org.json.JSONTokener(details).nextValue()); }
@@ -232,6 +239,9 @@ public final class MainActivity extends Activity {
         @Override public void onPageFinished(WebView view, String url) { injectPageCleanup(view); }
         @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
             if (request.isForMainFrame()) lastPageError = "network " + error.getErrorCode();
+            else if (request.getUrl().getPath() != null && request.getUrl().getPath().startsWith("/api/")) {
+                lastApiError = "network " + error.getErrorCode() + " " + request.getUrl().getPath();
+            }
         }
         @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
             if (request.isForMainFrame()) lastPageError = "HTTP " + response.getStatusCode();
