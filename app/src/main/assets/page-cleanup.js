@@ -730,8 +730,8 @@
     });
   };
   const restoreNativeAnswers = () => {
-    document.querySelectorAll('.zhihu-shell-answer-card').forEach(card => {
-      card.classList.remove('zhihu-shell-answer-card');
+    document.querySelectorAll('.zhihu-shell-answer-card,.zhihu-shell-single-answer-card').forEach(card => {
+      card.classList.remove('zhihu-shell-answer-card', 'zhihu-shell-single-answer-card');
       delete card.dataset.zhihuShellAnswerState;
       card.querySelectorAll('.zhihu-shell-answer-text').forEach(text => {
         text.classList.remove('zhihu-shell-answer-text', 'zhihu-shell-answer-collapsed');
@@ -741,6 +741,61 @@
         control.style.removeProperty('display');
         delete control.dataset.zhihuShellManagedAnswer;
       });
+    });
+  };
+  const collapseSingleAnswerPreviews = () => {
+    answerCards().forEach(card => {
+      const actions = answerActions(card);
+      const text = ['.RichText', '.ztext', '[itemprop="text"]', '.RichContent-inner']
+        .map(selector => Array.from(card.querySelectorAll(selector)).find(candidate =>
+          !candidate.closest('.AuthorInfo,.ContentItem-meta,' + COMMENT_CONTENT) &&
+          !(actions && candidate.contains(actions))))
+        .find(Boolean);
+      if (!text || !text.parentNode) return;
+      card.classList.add('zhihu-shell-single-answer-card');
+      if (card.__zhihuShellAnswerText && card.__zhihuShellAnswerText !== text) {
+        card.__zhihuShellAnswerText.classList.remove('zhihu-shell-answer-text', 'zhihu-shell-answer-collapsed');
+      }
+      card.__zhihuShellAnswerText = text;
+      text.classList.add('zhihu-shell-answer-text');
+      let row = card.querySelector('.zhihu-shell-answer-toggle-row');
+      let button = row && row.querySelector('.zhihu-shell-answer-toggle');
+      if (!button) {
+        row = document.createElement('div');
+        row.className = 'zhihu-shell-answer-toggle-row';
+        button = document.createElement('span');
+        button.className = 'zhihu-shell-answer-toggle';
+        button.setAttribute('role', 'button');
+        button.tabIndex = 0;
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          const currentText = card.__zhihuShellAnswerText;
+          if (!currentText) return;
+          const folded = card.dataset.zhihuShellAnswerState === 'expanded';
+          if (!folded) {
+            const nativeExpand = nativeAnswerControls(card).find(element =>
+              /^(阅读全文|展开全文|展开更多)$/.test(controlText(element))
+            );
+            if (nativeExpand) {
+              nativeExpand.style.removeProperty('display');
+              window.__zhihuShellSuppressGuard = true;
+              try { nativeExpand.click(); } finally { window.__zhihuShellSuppressGuard = false; }
+              if (nativeExpand.isConnected) nativeExpand.style.setProperty('display', 'none', 'important');
+            }
+          }
+          setAnswerFolded(card, currentText, button, folded);
+        });
+        button.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          button.click();
+        });
+        row.appendChild(button);
+        text.parentNode.insertBefore(row, text.nextSibling);
+      }
+      setAnswerFolded(card, text, button, card.dataset.zhihuShellAnswerState !== 'expanded');
+      hideNativeAnswerControls(card);
     });
   };
   const forceAnswerLayout = card => {
@@ -1173,11 +1228,18 @@
     forceQuestionHeaderLayout();
     const nativeAnswerMode = useNativeAnswerList();
     if (!isQuestionAnswerPage()) removeSponsoredCards();
+    if (isQuestionAnswerPage()) {
+      if (document.querySelector('.zhihu-shell-answer-card')) restoreNativeAnswers();
+      collapseSingleAnswerPreviews();
+      updatePersistentControls();
+      return;
+    }
     if (nativeAnswerMode) {
       restoreNativeAnswers();
       updatePersistentControls();
       return;
     }
+    if (document.querySelector('.zhihu-shell-single-answer-card')) restoreNativeAnswers();
     collapseInitialAnswers();
     document.querySelectorAll('a,button,[role="button"]').forEach(element => {
       if (isAppButton(element)) element.remove();
