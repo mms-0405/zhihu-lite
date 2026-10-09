@@ -180,6 +180,30 @@
       word-break: normal !important;
       overflow-x: auto !important;
     }
+    .zhihu-shell-native-answers .QuestionAnswers-answers,
+    .zhihu-shell-native-answers .QuestionAnswers-answers > *,
+    .zhihu-shell-native-answers .QuestionAnswers-answers .AnswerItem,
+    .zhihu-shell-native-answers .QuestionAnswers-answers [class*="AnswerItem"] {
+      content-visibility: visible !important;
+      contain: none !important;
+    }
+    .zhihu-shell-native-flow-repair .QuestionAnswers-answers,
+    .zhihu-shell-native-flow-repair .QuestionAnswers-answers > * {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    .zhihu-shell-native-flow-repair .QuestionAnswers-answers .AnswerItem,
+    .zhihu-shell-native-flow-repair .QuestionAnswers-answers [class*="AnswerItem"] {
+      position: relative !important;
+      inset: auto !important;
+      transform: none !important;
+      height: auto !important;
+      min-height: 1px !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
     .zhihu-shell-question-page .QuestionHeader-footer {
       position: static !important;
       display: flex !important;
@@ -653,6 +677,43 @@
     }
     if (isQuestionAnswersPage() || isQuestionAnswerPage()) return true;
     return !!currentQuestionId && window.__zhihuShellNativeAnswerQuestionId === currentQuestionId;
+  };
+  const setNativeAnswerScope = enabled => {
+    if (!document.body) return;
+    document.body.classList.toggle('zhihu-shell-native-answers', enabled);
+    if (!enabled) document.body.classList.remove('zhihu-shell-native-flow-repair');
+  };
+  const repairCollapsedNativeAnswerList = () => {
+    if (!document.body || !document.body.classList.contains('zhihu-shell-native-answers')) return;
+    const list = document.querySelector('.QuestionAnswers-answers');
+    if (!list || controlText(list).length < 20) return;
+    const answers = Array.from(list.querySelectorAll('.AnswerItem,[class*="AnswerItem"]'))
+      .filter(answer => !answer.closest('.Comments-container,.Comments,.CommentList,.CommentListV2'));
+    if (!answers.length) return;
+    const listHeight = list.getBoundingClientRect().height;
+    const visibleAnswer = answers.some(answer => answer.getBoundingClientRect().height > 1);
+    if (listHeight > 1 && visibleAnswer) return;
+    document.body.classList.add('zhihu-shell-native-flow-repair');
+    const set = (element, property, value) => element.style.setProperty(property, value, 'important');
+    [list, ...Array.from(list.children)].forEach(element => {
+      set(element, 'height', 'auto');
+      set(element, 'min-height', '0');
+      set(element, 'max-height', 'none');
+      set(element, 'overflow', 'visible');
+      set(element, 'content-visibility', 'visible');
+      set(element, 'contain', 'none');
+    });
+    answers.forEach(answer => {
+      set(answer, 'position', 'relative');
+      set(answer, 'inset', 'auto');
+      set(answer, 'transform', 'none');
+      set(answer, 'height', 'auto');
+      set(answer, 'min-height', '1px');
+      set(answer, 'max-height', 'none');
+      set(answer, 'overflow', 'visible');
+      set(answer, 'content-visibility', 'visible');
+      set(answer, 'contain', 'none');
+    });
   };
   const questionDetailTrigger = /^(显示全部|展开问题)$/;
   const suspendCleanup = milliseconds => {
@@ -1222,18 +1283,25 @@
     }
     setQuestionPageScope();
     ensureViewport();
+    const nativeAnswerMode = useNativeAnswerList();
+    const nativeAnswerListMode = nativeAnswerMode && !isQuestionAnswerPage();
+    setNativeAnswerScope(nativeAnswerListMode);
+    if (nativeAnswerListMode) {
+      forceQuestionHeaderLayout();
+      removeSponsoredCards();
+      if (document.querySelector('.zhihu-shell-answer-card,.zhihu-shell-single-answer-card')) {
+        restoreNativeAnswers();
+      }
+      repairCollapsedNativeAnswerList();
+      updatePersistentControls();
+      return;
+    }
     forceQuestionFlowWidth();
     forceQuestionHeaderLayout();
-    const nativeAnswerMode = useNativeAnswerList();
     if (!isQuestionAnswerPage()) removeSponsoredCards();
     if (isQuestionAnswerPage()) {
       if (document.querySelector('.zhihu-shell-answer-card')) restoreNativeAnswers();
       collapseSingleAnswerPreviews();
-      updatePersistentControls();
-      return;
-    }
-    if (nativeAnswerMode) {
-      restoreNativeAnswers();
       updatePersistentControls();
       return;
     }
@@ -1336,6 +1404,7 @@
       if (controlsFrame !== null) return;
       controlsFrame = requestAnimationFrame(() => {
         controlsFrame = null;
+        repairCollapsedNativeAnswerList();
         updatePersistentControls();
       });
     };
