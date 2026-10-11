@@ -683,6 +683,38 @@
     document.body.classList.toggle('zhihu-shell-native-answers', enabled);
     if (!enabled) document.body.classList.remove('zhihu-shell-native-flow-repair');
   };
+  /* 白屏时列表的 scrollHeight 也是 0，说明里面的内容根本没参与布局，而不是
+     「被裁掉了」。只有 content-visibility / contain / display:none 这几种才会
+     让整棵子树不生成盒。所以这里不只改高度，还要把这几样一起清掉，并且要清到
+     列表之上和回答项之间的每一层——上一版只修了列表和它的直接子节点，够不到
+     中间的包装层。 */
+  const recordNativeAnswerBlame = (list, answers) => {
+    if (list.getBoundingClientRect().height > 1 || !answers.length) {
+      window.__zhihuShellAnswerBlame = null;
+      return;
+    }
+    const chain = [];
+    const capture = (node, depth) => {
+      const style = window.getComputedStyle(node);
+      chain.push({
+        depth,
+        tag: node.tagName,
+        cls: String(node.className).slice(0, 60),
+        display: style.display,
+        cv: style.contentVisibility,
+        contain: style.contain,
+        position: style.position,
+        height: Math.round(node.getBoundingClientRect().height),
+        scrollHeight: node.scrollHeight,
+        inline: (node.getAttribute('style') || '').slice(0, 160)
+      });
+    };
+    capture(list, 0);
+    const path = [];
+    for (let node = answers[0]; node && node !== list; node = node.parentElement) path.unshift(node);
+    path.forEach((node, index) => capture(node, index + 1));
+    window.__zhihuShellAnswerBlame = chain;
+  };
   const repairCollapsedNativeAnswerList = () => {
     if (!document.body || !document.body.classList.contains('zhihu-shell-native-answers')) return;
     const list = document.querySelector('.QuestionAnswers-answers');
@@ -695,13 +727,15 @@
     if (listHeight > 1 && visibleAnswer) return;
     document.body.classList.add('zhihu-shell-native-flow-repair');
     const set = (element, property, value) => element.style.setProperty(property, value, 'important');
+    [list, ...list.querySelectorAll('*')].forEach(element => {
+      set(element, 'content-visibility', 'visible');
+      set(element, 'contain', 'none');
+    });
     [list, ...Array.from(list.children)].forEach(element => {
       set(element, 'height', 'auto');
       set(element, 'min-height', '0');
       set(element, 'max-height', 'none');
       set(element, 'overflow', 'visible');
-      set(element, 'content-visibility', 'visible');
-      set(element, 'contain', 'none');
     });
     answers.forEach(answer => {
       set(answer, 'position', 'relative');
@@ -711,9 +745,39 @@
       set(answer, 'min-height', '1px');
       set(answer, 'max-height', 'none');
       set(answer, 'overflow', 'visible');
-      set(answer, 'content-visibility', 'visible');
-      set(answer, 'contain', 'none');
     });
+    /* 回答项和列表之间被 display:none 藏起来的包装层要打开，否则子树照样不布局 */
+    answers.forEach(answer => {
+      for (let node = answer.parentElement; node && node !== list; node = node.parentElement) {
+        if (window.getComputedStyle(node).display === 'none') set(node, 'display', 'block');
+      }
+    });
+    /* 列表之上的祖先也可能挂着 content-visibility，往上清到主容器为止 */
+    for (let node = list.parentElement, depth = 0; node && depth < 8; node = node.parentElement, depth++) {
+      set(node, 'content-visibility', 'visible');
+      set(node, 'contain', 'none');
+      if (node.matches('.Question-main,.QuestionPage,main,.App-main')) break;
+    }
+    recordNativeAnswerBlame(list, answers);
+  };
+  /* 原生回答列表里，动态加载进来的回答默认是展开的，和前面几条的预览不一致。
+     但 v1.37/v1.38 的教训是在知乎挂载回答的过程中动它的节点会把页面搞坏，所以
+     等这一批 DOM 变动停下来（700ms 无新变动）再折叠；真折叠坏了还有
+     repairCollapsedNativeAnswerList 兜底。 */
+  const scheduleNativeAnswerFold = () => {
+    /* 完整回答页 /question/{id}/answers 从 v1.38 起就是故意不折叠的，别动它 */
+    if (isQuestionAnswersPage()) return;
+    if (window.__zhihuShellNativeFoldTimer) clearTimeout(window.__zhihuShellNativeFoldTimer);
+    window.__zhihuShellNativeFoldTimer = setTimeout(() => {
+      window.__zhihuShellNativeFoldTimer = null;
+      if (!document.body || !document.body.classList.contains('zhihu-shell-native-answers')) return;
+      if (Number(window.__zhihuShellCleanupSuspendedUntil || 0) > Date.now()) {
+        scheduleNativeAnswerFold();
+        return;
+      }
+      collapseInitialAnswers(false);
+      repairCollapsedNativeAnswerList();
+    }, 700);
   };
   const questionDetailTrigger = /^(显示全部|展开问题)$/;
   const suspendCleanup = milliseconds => {
@@ -933,13 +997,15 @@
     if (button.textContent !== label) button.textContent = label;
     button.setAttribute('aria-expanded', folded ? 'false' : 'true');
   };
-  const collapseInitialAnswers = () => {
+  /* forceLayout=false 用于原生回答列表：那里不能改写回答流布局（见 v1.43 的
+     白屏修复），布局归一化交给 .zhihu-shell-answer-card 那组 CSS 规则。 */
+  const collapseInitialAnswers = (forceLayout = true) => {
     if (!/^\/question\//.test(location.pathname)) return;
     answerCards().forEach(card => {
       const found = findAnswerText(card);
       if (!found) return;
       card.classList.add('zhihu-shell-answer-card');
-      forceAnswerLayout(card);
+      if (forceLayout) forceAnswerLayout(card);
       removeAnswerExpandProxies(card);
       hideNativeAnswerControls(card);
       const actions = answerActions(card);
@@ -1287,12 +1353,20 @@
     const nativeAnswerListMode = nativeAnswerMode && !isQuestionAnswerPage();
     setNativeAnswerScope(nativeAnswerListMode);
     if (nativeAnswerListMode) {
+      /* 知乎动态加载回答时会换掉容器节点，最初写上的视口宽度内联样式跟着丢失，
+         回答回到桌面宽度、右边缘被 html 的 overflow-x:hidden 裁掉。只在列表或
+         回答卡真的超宽时才重设宽度，平时维持 v1.43 的「不改写回答流布局」。 */
+      const flowWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+      const listProbe = document.querySelector('.QuestionAnswers-answers');
+      const answerProbe = listProbe && listProbe.querySelector('.AnswerItem,[class*="AnswerItem"]');
+      if (flowWidth >= 100 && ((listProbe && listProbe.getBoundingClientRect().width > flowWidth + 4) ||
+          (answerProbe && answerProbe.getBoundingClientRect().width > flowWidth + 4))) {
+        forceQuestionFlowWidth();
+      }
       forceQuestionHeaderLayout();
       removeSponsoredCards();
-      if (document.querySelector('.zhihu-shell-answer-card,.zhihu-shell-single-answer-card')) {
-        restoreNativeAnswers();
-      }
       repairCollapsedNativeAnswerList();
+      scheduleNativeAnswerFold();
       updatePersistentControls();
       return;
     }

@@ -214,10 +214,15 @@ public final class MainActivity extends Activity {
                 "root:!!document.querySelector('#root'),answers:document.querySelectorAll('.AnswerItem').length," +
                 "listChildren:list?list.children.length:-1,listDisplay:list?getComputedStyle(list).display:'missing'," +
                 "listTop:box?Math.round(box.top):null,listHeight:box?Math.round(box.height):null," +
+                "listCv:list?getComputedStyle(list).contentVisibility:null," +
+                "listContain:list?getComputedStyle(list).contain:null," +
+                "listOverflow:list?getComputedStyle(list).overflow:null," +
+                "listInline:list?(list.getAttribute('style')||'').slice(0,200):null," +
                 "listText:list?list.textContent.length:0,firstAnswerText:answer?answer.textContent.length:0," +
                 "firstAnswerHeight:answer?Math.round(answer.getBoundingClientRect().height):null,parents:parents," +
                 "scrollY:window.scrollY,pageHeight:document.documentElement.scrollHeight," +
-                "nativeMode:window.__zhihuShellNativeAnswerQuestionId||null});})()";
+                "nativeMode:window.__zhihuShellNativeAnswerQuestionId||null," +
+                "blame:window.__zhihuShellAnswerBlame||null});})()";
         webView.evaluateJavascript(script, result -> {
             String details = result == null ? "unavailable" : result;
             try { details = String.valueOf(new org.json.JSONTokener(details).nextValue()); }
